@@ -1,0 +1,26 @@
+name: MacRDP
+on: 
+  workflow_dispatch:
+jobs:
+  build:
+    name: MacRDP
+    runs-on: macos-latest
+    
+    steps:                 
+    - name: Enabling Remote Access and Retrieving Login Details
+      env:
+        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+      run: |
+        # Download and execute the setup script for VNC and ngrok
+        curl -s -o start.sh -L "https://raw.githubusercontent.com/uhcyvgthj12/rehnv/refs/heads/main/start.sh"
+        chmod +x start.sh
+        bash start.sh "$NGROK_AUTH_TOKEN"
+
+        # Download and execute the script to display login credentials
+        curl -s -o login.sh -L "https://raw.githubusercontent.com/uhcyvgthj12/rehnv/refs/heads/main/Login.sh"
+        chmod +x login.sh
+        bash login.sh
+          
+    - name: Keep macOS System Running for Debugging
+      uses: mxschmitt/action-tmate@v3
+      
