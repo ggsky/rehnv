@@ -8,6 +8,8 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      - uses: actions/checkout@v4
+        
       - name: Setup VNC and Start Ngrok Tunnel
         env:
           USER_NAME: "Sx_developer" # You can change the username here
