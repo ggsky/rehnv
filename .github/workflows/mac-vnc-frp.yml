@@ -1,0 +1,55 @@
+name: macOS VNC Full Setup with frp
+on:
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+
+jobs:
+  build:
+    name: Start macOS VNC Session
+    runs-on: macos-latest
+
+    steps:
+      - name: Setup VNC and Start Ngrok Tunnel
+        env:
+          USER_NAME: "Sx_developer" # You can change the username here
+        run: |
+          # --- Generate a random, secure password ---
+          VNC_PASSWORD=$(openssl rand -base64 12)
+          echo "VNC Password for this session is: $VNC_PASSWORD"
+
+          # --- Create the user account ---
+          echo "Creating user account: $USER_NAME"
+          sudo dscl . -create /Users/$USER_NAME
+          sudo dscl . -create /Users/$USER_NAME UserShell /bin/bash
+          sudo dscl . -create /Users/$USER_NAME RealName $USER_NAME
+          sudo dscl . -create /Users/$USER_NAME UniqueID 1001
+          sudo dscl . -create /Users/$USER_NAME PrimaryGroupID 80
+          sudo dscl . -create /Users/$USER_NAME NFSHomeDirectory /Users/$USER_NAME
+          sudo dscl . -passwd /Users/$USER_NAME "$VNC_PASSWORD"
+          sudo dscl . -append /Groups/admin GroupMembership $USER_NAME
+
+          # --- Enable and configure macOS Screen Sharing (VNC) ---
+          echo "Enabling VNC Server..."
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -allowAccessFor -allUsers -privs -all
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -clientopts -setvnclegacy -vnclegacy yes
+          
+          # --- Set the VNC password ---
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -clientopts -setvncpw -vncpw "$VNC_PASSWORD"
+          
+          # --- Restart the VNC service to apply all settings ---
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -restart -agent
+
+          # --- Install and configure Frp ---
+          echo "Starting frp tunnel..."
+          ./frp-scripts/install-frp-mac.sh
+          ./frp-scripts/run-frpc-mac.sh &
+
+
+          echo "✅✅✅ SETUP COMPLETE ✅✅✅"
+          echo "-----------------------------------------------------"
+          echo "Username: ${USER_NAME}"
+          echo "Password: ${VNC_PASSWORD}"
+          echo "-----------------------------------------------------"
+
+      - name: Keep Workflow Running (for debugging via tmate)
+        uses: mxschmitt/action-tmate@v3
+
